@@ -15,9 +15,10 @@ resource "aws_vpc" "voltaire-infra" {
 }
 
 resource "aws_subnet" "pub" {
-  count      = 2
-  vpc_id     = aws_vpc.voltaire-infra.id
-  cidr_block = cidrsubnet(aws_vpc.voltaire-infra.cidr_block, 8, count.index) # this the cidr of the public sub > vpc cidr, increment of the base bit, index for unique subnet
+  count             = 2
+  vpc_id            = aws_vpc.voltaire-infra.id
+  cidr_block        = cidrsubnet(aws_vpc.voltaire-infra.cidr_block, 8, count.index) # this the cidr of the public sub > vpc cidr, increment of the base bit, index for unique subnet
+  availability_zone = element(data.aws_availability_zones.available.names, count.index)
 
   tags = {
     Name = "public-subnet-${count.index + 1}"
@@ -26,14 +27,20 @@ resource "aws_subnet" "pub" {
 }
 
 resource "aws_subnet" "priv" {
-  count      = 2
-  vpc_id     = aws_vpc.voltaire-infra.id
-  cidr_block = cidrsubnet(aws_vpc.voltaire-infra.cidr_block, 8, count.index + 2) # this the cidr of the public sub > vpc cidr, increment of the base bit, index for unique subnet
+  count             = 2
+  vpc_id            = aws_vpc.voltaire-infra.id
+  cidr_block        = cidrsubnet(aws_vpc.voltaire-infra.cidr_block, 8, count.index + 2) # this the cidr of the public sub > vpc cidr, increment of the base bit, index for unique subnet
+  availability_zone = element(data.aws_availability_zones.available.names, count.index)
 
   tags = {
     Name = "private-subnet-${count.index + 1}"
   }
 
+}
+
+# Get availability zones
+data "aws_availability_zones" "available" {
+  state = "available"
 }
 
 #IGW to route traffic to the internet
@@ -283,13 +290,13 @@ resource "aws_autoscaling_group" "private_ASG" {
   health_check_type         = "EC2"
   health_check_grace_period = 300
 
-    # tags = [
-    #   {
-    #     key                 = "Name"
-    #     value               = "private-asg"
-    #     propagate_at_launch = true
-    #   },
-    # ]
+  # tags = [
+  #   {
+  #     key                 = "Name"
+  #     value               = "private-asg"
+  #     propagate_at_launch = true
+  #   },
+  # ]
 
   lifecycle {
     create_before_destroy = true
